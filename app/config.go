@@ -14,6 +14,7 @@ var Config appConfig
 
 type appConfig struct {
 	DB map[interface{}]interface{} `mapstructure:"db"`
+	ServerPort int `mapstructure:"port"`
 }
 
 // LoadConfig loads configuration from the given list of paths and populates it into the Config variable.
@@ -24,6 +25,7 @@ func LoadConfig(configPaths ...string) error {
 
 	config.SetConfigName("config")
 	config.SetConfigType("yaml")
+	config.SetDefault("port", 8080)
 	config.AutomaticEnv()
 
 	for _, path := range configPaths {

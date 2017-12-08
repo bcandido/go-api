@@ -9,13 +9,15 @@ import (
 	"github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("cofing")
-
 const DRIVER = "postgres"
 
-var Connetion *sql.DB
+var log = logging.MustGetLogger("cofing")
 
-func OpenConnection() *sql.DB {
+type Postgres struct {
+	DB *sql.DB
+}
+
+func (db *Postgres) Open() {
 	log.Info("starting to open the connection")
 
 	log.Info("loading configuration")
@@ -32,12 +34,22 @@ func OpenConnection() *sql.DB {
 
 	log.Info(psqlInfo)
 
-	Connection, err := sql.Open(DRIVER, psqlInfo)
+	var err error
+	db.DB, err = sql.Open(DRIVER, psqlInfo)
 	if err != nil {
 		log.Error("failure to open a connection:", err)
 		panic(err)
 	}
 	log.Info("connection opened successfully")
+}
 
-	return Connection
+func (db *Postgres) Close() {
+	log.Info("closing connection")
+
+	err := db.DB.Close()
+	if err != nil {
+		log.Error("failure to close a connection:", err)
+		panic(err)
+	}
+	log.Info("connection closed")
 }
