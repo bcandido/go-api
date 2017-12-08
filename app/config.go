@@ -4,7 +4,10 @@ import (
 	"fmt"
 
 	"github.com/spf13/viper"
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger("cofing")
 
 // Config stores the application-wide configurations
 var Config appConfig
