@@ -26,3 +26,12 @@ func (s *LeiService) GetAll() ([]models.Lei, error) {
 	}
 	return leis, nil
 }
+
+func (s *LeiService) Get(id string) (models.Lei, error) {
+	lei, err := s.dao.Get(id)
+	if err != nil {
+		log.Error("unable to get leis data from dao")
+		return models.Lei{}, err
+	}
+	return lei, nil
+}

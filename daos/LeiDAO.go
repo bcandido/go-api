@@ -47,7 +47,34 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 		rows.Scan(&lei.Id, &lei.Nome)
 		leis = append(leis, lei)
 	}
-	log.Info(leis)
-
 	return leis, err
+}
+
+
+func (dao *LeiDAO) Get(id string) (models.Lei, error) {
+
+	// open db connection
+	err := dao.database.Open()
+	defer dao.database.Close()
+	if err != nil {
+		message := "unable to establish a connection with the database"
+		log.Error(message)
+		return models.Lei{}, err
+	}
+
+	tx, _ := dao.database.DB.Begin()
+	query := "SELECT id, nome FROM public.leis WHERE id = '" + id + "'"
+
+	rows, err := tx.Query(query)
+	if err != nil {
+		log.Error("unable to get leis data")
+		return models.Lei{}, err
+	}
+
+	var lei models.Lei
+	err = rows.Scan(&lei.Id, &lei.Nome)
+	if err != nil {
+		log.Info("data not found for id = " + id)
+	}
+	return lei, err
 }
