@@ -5,14 +5,12 @@ import (
 	"github.com/op/go-logging"
 	"./app"
 	"./db"
-	"./models"
+	"./dao"
 	"net/http"
 	"html"
 	"github.com/gorilla/mux"
-	"os"
-	"os/signal"
-	"syscall"
 	"io/ioutil"
+	"encoding/json"
 )
 
 var log = logging.MustGetLogger("main")
@@ -24,46 +22,9 @@ func main() {
 	log.Info("set up application")
 	SetUpApplication()
 
-	log.Info("open database connection")
-	database := db.Postgres{}
-	err := database.Open()
-
-	defer log.Info("close database connection")
-	defer database.Close()
-
-	if err != nil {
-		log.Error("unable to establish a connection with the database")
-	}
-	log.Info("connection establish")
-
-
-	rows, err := database.DB.Query("SELECT id, nome FROM public.leis")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var leis []models.Lei
-	for rows.Next() {
-		var lei models.Lei
-		rows.Scan(&lei.Id, &lei.Nome)
-		leis = append(leis, lei)
-	}
-
-	for _, lei := range leis {
-		fmt.Println(lei.Nome)
-	}
-
-	//
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		database.Close()
-		os.Exit(1)
-	}()
-
 	router := mux.NewRouter()
 	router.HandleFunc("/", Index)
+	router.HandleFunc("/leis", ServeLeis)
 
 	port := fmt.Sprintf(":%v", app.Config.ServerPort)
 	log.Info("server version " + app.Version + " is started at " + port)
@@ -75,6 +36,35 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 }
 
+func ServeLeis(w http.ResponseWriter, r *http.Request) {
+	log.Info(r.Proto, r.Host, r.Method, r.RequestURI)
+
+	// open db connection
+	database := db.Postgres{}
+	err := database.Open()
+	defer database.Close()
+
+	if err != nil {
+		message := "unable to establish a connection with the database"
+		log.Error(message)
+		InternalServerErrorResponse(w, message)
+		return
+	}
+
+	lei := dao.NewLeiDAO(database.DB)
+	leis, err := lei.GetAll()
+
+	response, err := json.Marshal(leis)
+	if err != nil {
+		message := "error encoding json"
+		log.Error(message)
+		InternalServerErrorResponse(w, message)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, string(response))
+}
+
 func SetUpApplication() {
 	// simply prints an ascii art
 	PrintAsciiArt()
@@ -83,7 +73,7 @@ func SetUpApplication() {
 	LoadConfiguration()
 }
 
-func PrintAsciiArt()  {
+func PrintAsciiArt() {
 	asciiArt, err := ioutil.ReadFile("ascii-art.txt")
 	if err != nil {
 		log.Warning("unable to load ascii-art message")
@@ -99,4 +89,13 @@ func LoadConfiguration() {
 		log.Error("invalid application configuration")
 		panic(err)
 	}
+}
+
+func InternalServerErrorResponse(w http.ResponseWriter, message string)  {
+	status := http.StatusInternalServerError
+	body := map[int]string{int(status): message}
+
+	response, _ := json.Marshal(body)
+	w.WriteHeader(status)
+	fmt.Fprintf(w, string(response))
 }

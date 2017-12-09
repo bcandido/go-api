@@ -7,14 +7,27 @@ import (
 	_ "github.com/lib/pq"
 	"../app"
 	"github.com/op/go-logging"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 const DRIVER = "postgres"
+const MODULE = "config"
 
-var log = logging.MustGetLogger("cofing")
+var log = logging.MustGetLogger(MODULE)
 
 type Postgres struct {
 	DB *sql.DB
+}
+
+type Tx struct {
+	Tx *sql.Tx
+}
+
+type Query struct {
+	Query  string
+	Params []interface{}
 }
 
 func (db *Postgres) Open() error {
@@ -26,7 +39,6 @@ func (db *Postgres) Open() error {
 	user := "postgres"
 	password := "password"
 	dbname := "postgres"
-
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -41,6 +53,15 @@ func (db *Postgres) Open() error {
 	} else {
 		log.Info("connection opened successfully")
 	}
+
+	// close the connection for SIGTERM
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		db.Close()
+		os.Exit(1)
+	}()
 
 	return err
 }
