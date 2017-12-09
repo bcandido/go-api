@@ -5,29 +5,25 @@ import (
 	"github.com/op/go-logging"
 	"./app"
 	"./db"
-	"./dao"
+	"./daos"
+	"./api"
+	"./service"
 	"net/http"
-	"html"
 	"github.com/gorilla/mux"
 	"io/ioutil"
-	"encoding/json"
+	"html"
 )
 
 var log = logging.MustGetLogger("main")
 
 func main() {
-	log.Info("start application")
-	log.Info("Version: " + app.Version)
-
-	log.Info("set up application")
+	log.Info("start application version " + app.Version)
 	SetUpApplication()
 
-	router := mux.NewRouter()
-	router.HandleFunc("/", Index)
-	router.HandleFunc("/leis", ServeLeis)
+	router := BuildServiceResources()
 
 	port := fmt.Sprintf(":%v", app.Config.ServerPort)
-	log.Info("server version " + app.Version + " is started at " + port)
+	log.Info("server started at port " + port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
 
@@ -36,36 +32,20 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 }
 
-func ServeLeis(w http.ResponseWriter, r *http.Request) {
-	log.Info(r.Proto, r.Host, r.Method, r.RequestURI)
-
-	// open db connection
+func BuildServiceResources() *mux.Router {
 	database := db.Postgres{}
-	err := database.Open()
-	defer database.Close()
+	router := mux.NewRouter()
 
-	if err != nil {
-		message := "unable to establish a connection with the database"
-		log.Error(message)
-		InternalServerErrorResponse(w, message)
-		return
-	}
+	dao := daos.NewLeiDAO(&database)
+	leiService := service.NewLeiService(dao)
 
-	lei := dao.NewLeiDAO(database.DB)
-	leis, err := lei.GetAll()
-
-	response, err := json.Marshal(leis)
-	if err != nil {
-		message := "error encoding json"
-		log.Error(message)
-		InternalServerErrorResponse(w, message)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, string(response))
+	api.ServeLeiResource(router, leiService)
+	return router
 }
 
 func SetUpApplication() {
+	log.Info("set up application")
+
 	// simply prints an ascii art
 	PrintAsciiArt()
 
@@ -89,13 +69,4 @@ func LoadConfiguration() {
 		log.Error("invalid application configuration")
 		panic(err)
 	}
-}
-
-func InternalServerErrorResponse(w http.ResponseWriter, message string)  {
-	status := http.StatusInternalServerError
-	body := map[int]string{int(status): message}
-
-	response, _ := json.Marshal(body)
-	w.WriteHeader(status)
-	fmt.Fprintf(w, string(response))
 }

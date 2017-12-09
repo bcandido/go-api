@@ -1,45 +1,40 @@
-package dao
+package daos
 
 import (
-	"database/sql"
 	"github.com/op/go-logging"
 	"../models"
+	"../db"
 )
 
-const MODULE = "dao"
+const MODULE = "daos"
 
 var log = logging.MustGetLogger(MODULE)
 
 // LeiDAO persists Lei data in database
 type LeiDAO struct {
-	database *sql.DB
+	database *db.Postgres
 }
 
 // NewLeiDAO creates a new LeiDAO
-func NewLeiDAO(database *sql.DB) *LeiDAO {
-	return &LeiDAO{database: database}
+func NewLeiDAO(postgres *db.Postgres) *LeiDAO {
+	return &LeiDAO{database: postgres}
 }
 
 // Get reads the Lei with the specified ID from the database.
-func (dao *LeiDAO) Get(id int) (error) {
-	tx, _ := dao.database.Begin()
+func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 
-	query := "SELECT id, nome FROM public.leis WHERE id = " + string(id)
-	leis, err := tx.Exec(query)
+	// open db connection
+	err := dao.database.Open()
+	defer dao.database.Close()
 	if err != nil {
-		log.Error("unable to get data")
-		return err
+		message := "unable to establish a connection with the database"
+		log.Error(message)
+		return []models.Lei{}, err
 	}
 
-	log.Info(leis)
-
-	return err
-}
-
-func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
-	tx, _ := dao.database.Begin()
-
+	tx, _ := dao.database.DB.Begin()
 	query := "SELECT id, nome FROM public.leis"
+
 	rows, err := tx.Query(query)
 	if err != nil {
 		log.Error("unable to get leis data")
@@ -52,7 +47,6 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 		rows.Scan(&lei.Id, &lei.Nome)
 		leis = append(leis, lei)
 	}
-
 	log.Info(leis)
 
 	return leis, err
