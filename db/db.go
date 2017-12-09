@@ -17,7 +17,7 @@ type Postgres struct {
 	DB *sql.DB
 }
 
-func (db *Postgres) Open() {
+func (db *Postgres) Open() error {
 	log.Info("starting to open the connection")
 
 	log.Info("loading configuration")
@@ -38,9 +38,11 @@ func (db *Postgres) Open() {
 	db.DB, err = sql.Open(DRIVER, psqlInfo)
 	if err != nil {
 		log.Error("failure to open a connection:", err)
-		panic(err)
+	} else {
+		log.Info("connection opened successfully")
 	}
-	log.Info("connection opened successfully")
+
+	return err
 }
 
 func (db *Postgres) Close() {
