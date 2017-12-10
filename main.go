@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"io/ioutil"
-	"html"
 )
 
 var log = logging.MustGetLogger("main")
@@ -25,11 +24,6 @@ func main() {
 	port := fmt.Sprintf(":%v", app.Config.ServerPort)
 	log.Info("server started at port " + port)
 	log.Fatal(http.ListenAndServe(port, router))
-}
-
-func Index(w http.ResponseWriter, r *http.Request) {
-	log.Info(r.Proto, r.Host, r.Method, r.RequestURI)
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 }
 
 func BuildServiceResources() *mux.Router {

@@ -4,11 +4,16 @@ import (
 	"github.com/op/go-logging"
 	"../models"
 	"../db"
+	"errors"
 )
 
 const MODULE = "daos"
 
 var log = logging.MustGetLogger(MODULE)
+
+var (
+	ErrorNoItemFound   = errors.New("no item found")
+	ErrorDataBaseConnection = errors.New("unable to establish a connection with the database"))
 
 // LeiDAO persists Lei data in database
 type LeiDAO struct {
@@ -29,7 +34,7 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 	if err != nil {
 		message := "unable to establish a connection with the database"
 		log.Error(message)
-		return []models.Lei{}, err
+		return []models.Lei{}, ErrorDataBaseConnection
 	}
 
 	tx, _ := dao.database.DB.Begin()
@@ -47,7 +52,7 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 		rows.Scan(&lei.Id, &lei.Nome)
 		leis = append(leis, lei)
 	}
-	return leis, err
+	return leis, nil
 }
 
 
@@ -72,9 +77,10 @@ func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 	}
 
 	var lei models.Lei
+	rows.Next()
 	err = rows.Scan(&lei.Id, &lei.Nome)
 	if err != nil {
-		log.Info("data not found for id = " + id)
+		err = ErrorNoItemFound
 	}
 	return lei, err
 }

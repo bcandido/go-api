@@ -2,9 +2,9 @@ package api
 
 import (
 	"../models"
+	"../daos"
 	"github.com/gorilla/mux"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"github.com/op/go-logging"
 	"strconv"
@@ -31,13 +31,21 @@ type (
 func ServeLeiResource(router *mux.Router, service LeiService) {
 	resource := &LeiResource{service}
 	router.HandleFunc("/leis", resource.getAll)
-	router.HandleFunc("/leis/{id}", resource.get)
+	router.HandleFunc("/leis/{id:[0-9]+}", resource.get)
 }
 
 func (r LeiResource) getAll(writer http.ResponseWriter, request *http.Request) {
 	log.Info(request.Proto, request.Host, request.Method, request.RequestURI)
 
 	leis, err := r.service.GetAll()
+
+	switch err {
+	case daos.ErrorNoItemFound:
+		ItemNotFound(writer, "unable to find data")
+	case daos.ErrorDataBaseConnection:
+		InternalServerErrorResponse(writer, "unable to connect to database")
+	}
+
 	if err != nil {
 		message := "unable to establish a connection with the database"
 		log.Error(message)
@@ -54,7 +62,7 @@ func (r LeiResource) getAll(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(writer, string(payload))
+	writer.Write(payload)
 }
 
 func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
@@ -63,10 +71,13 @@ func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	id := vars["id"]
 	lei, err := r.service.Get(id)
-	if err != nil {
-		message := ""
-		log.Error(message)
-		InternalServerErrorResponse(writer, message)
+
+	switch err {
+	case daos.ErrorNoItemFound:
+		ItemNotFound(writer, "unable to find data")
+		return
+	case daos.ErrorDataBaseConnection:
+		InternalServerErrorResponse(writer, "unable to connect to database")
 		return
 	}
 
@@ -79,7 +90,7 @@ func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(writer, string(payload))
+	writer.Write(payload)
 
 }
 
@@ -90,5 +101,15 @@ func InternalServerErrorResponse(w http.ResponseWriter, message string) {
 
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, string(payload))
+	w.Write(payload)
+}
+
+func ItemNotFound(w http.ResponseWriter, message string) {
+	status := strconv.Itoa(http.StatusNotFound)
+	body := map[string]string{"status": status, "message": message}
+	payload, _ := json.Marshal(body)
+
+	w.WriteHeader(http.StatusNotFound)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(payload)
 }
