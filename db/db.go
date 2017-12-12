@@ -33,10 +33,10 @@ func (db *Postgres) Open() error {
 	port := app.Config.DB["port"]
 	user := "postgres"
 	password := "password"
-	dbname := "postgres"
+	dbName := "postgres"
 
 	credentials := "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable"
-	credentials = fmt.Sprintf(credentials, host, port, user, password, dbname)
+	credentials = fmt.Sprintf(credentials, host, port, user, password, dbName)
 	var err error
 	db.DB, err = sql.Open(DRIVER, credentials)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"../models"
 	"../db"
 	"errors"
+	"fmt"
 )
 
 const MODULE = "daos"
@@ -13,7 +14,10 @@ var log = logging.MustGetLogger(MODULE)
 
 var (
 	ErrorNoItemFound   = errors.New("no item found")
-	ErrorDataBaseConnection = errors.New("unable to establish a connection with the database"))
+	ErrorDataBaseConnection = errors.New("unable to establish a connection with the database")
+	ErrorTransactionFailure = errors.New("unable to begin a transaction")
+	ErrorInsertionFailure = errors.New("unable to get leis data")
+)
 
 // LeiDAO persists Lei data in database
 type LeiDAO struct {
@@ -32,13 +36,17 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 	err := dao.database.Open()
 	defer dao.database.Close()
 	if err != nil {
-		message := "unable to establish a connection with the database"
-		log.Error(message)
+		log.Error(err.Error())
 		return []models.Lei{}, ErrorDataBaseConnection
 	}
 
-	tx, _ := dao.database.DB.Begin()
-	query := "SELECT id, nome FROM public.leis"
+	tx, err := dao.database.DB.Begin()
+	if err != nil {
+		log.Error("unable to get leis data")
+		return []models.Lei{}, ErrorTransactionFailure
+
+	}
+	query := "SELECT \"ID\", \"NOME\" FROM public.leis"
 
 	rows, err := tx.Query(query)
 	if err != nil {
@@ -62,12 +70,16 @@ func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 	err := dao.database.Open()
 	defer dao.database.Close()
 	if err != nil {
-		message := "unable to establish a connection with the database"
-		log.Error(message)
+		log.Error(err.Error())
 		return models.Lei{}, err
 	}
 
-	tx, _ := dao.database.DB.Begin()
+	tx, err := dao.database.DB.Begin()
+	if err != nil {
+		log.Error("unable to get leis data")
+		return models.Lei{}, ErrorTransactionFailure
+
+	}
 	query := "SELECT id, nome FROM public.leis WHERE id = '" + id + "'"
 
 	rows, err := tx.Query(query)
@@ -83,4 +95,35 @@ func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 		err = ErrorNoItemFound
 	}
 	return lei, err
+}
+func (dao *LeiDAO) Add(newLei string) (bool, error) {
+
+	// open db connection
+	err := dao.database.Open()
+	defer dao.database.Close()
+	if err != nil {
+		log.Error(err.Error())
+		return false, err
+	}
+
+	tx, err := dao.database.DB.Begin()
+	if err != nil {
+		log.Error()
+		return false, ErrorTransactionFailure
+
+	}
+	query := fmt.Sprintf("INSERT INTO public.leis (\"NOME\") VALUES ('%s')", newLei)
+
+	rows, err := tx.Exec(query)
+	if err != nil {
+		tx.Rollback()
+		return false, ErrorInsertionFailure
+	}
+
+	tx.Commit()
+
+	id, _ := rows.LastInsertId()
+	log.Info("LastInsertId:", id)
+
+	return true, err
 }

@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"github.com/op/go-logging"
 	"strconv"
+	"io/ioutil"
+	validate "github.com/gima/govalid/v1"
+	"fmt"
 )
 
 const MODULE = "api"
@@ -19,6 +22,7 @@ type (
 	LeiService interface {
 		GetAll() ([]models.Lei, error)
 		Get(id string) (models.Lei, error)
+		Add(name string) (bool, error)
 	}
 
 	// LeiResource defines the handlers for the CRUD APIs.
@@ -30,8 +34,9 @@ type (
 // ServeLeiResource sets up the routing of leis endpoints and the corresponding handlers.
 func ServeLeiResource(router *mux.Router, service LeiService) {
 	resource := &LeiResource{service}
-	router.HandleFunc("/leis", resource.getAll)
-	router.HandleFunc("/leis/{id:[0-9]+}", resource.get)
+	router.HandleFunc("/leis", resource.getAll).Methods("GET")
+	router.HandleFunc("/leis", resource.add).Methods("POST")
+	router.HandleFunc("/leis/{id:[0-9]+}", resource.get).Methods("GET")
 }
 
 func (r LeiResource) getAll(writer http.ResponseWriter, request *http.Request) {
@@ -41,9 +46,14 @@ func (r LeiResource) getAll(writer http.ResponseWriter, request *http.Request) {
 
 	switch err {
 	case daos.ErrorNoItemFound:
-		ItemNotFound(writer, "unable to find data")
+		ItemNotFound(writer, err.Error())
+		return
 	case daos.ErrorDataBaseConnection:
-		InternalServerErrorResponse(writer, "unable to connect to database")
+		InternalServerErrorResponse(writer, err.Error())
+		return
+	case daos.ErrorTransactionFailure:
+		InternalServerErrorResponse(writer, err.Error())
+		return
 	}
 
 	if err != nil {
@@ -74,10 +84,13 @@ func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
 
 	switch err {
 	case daos.ErrorNoItemFound:
-		ItemNotFound(writer, "unable to find data")
+		ItemNotFound(writer, err.Error())
 		return
 	case daos.ErrorDataBaseConnection:
-		InternalServerErrorResponse(writer, "unable to connect to database")
+		InternalServerErrorResponse(writer, err.Error())
+		return
+	case daos.ErrorTransactionFailure:
+		InternalServerErrorResponse(writer, err.Error())
 		return
 	}
 
@@ -92,6 +105,45 @@ func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(payload)
 
+}
+
+func (r LeiResource) add(writer http.ResponseWriter, request *http.Request) {
+	log.Info(request.Proto, request.Host, request.Method, request.RequestURI)
+
+	body, err := ioutil.ReadAll(request.Body)
+	// err = validateJson(body)
+	if err != nil {
+		message := "body has an invalid json"
+		log.Error(message)
+		InternalServerErrorResponse(writer, message)
+		return
+	}
+
+	var lei = models.Lei{}
+	if err := json.Unmarshal(body, &lei); err != nil {
+		message := "error decoding json"
+		log.Error(message)
+		InternalServerErrorResponse(writer, message)
+		return
+	}
+
+	r.service.Add(lei.Nome)
+	payload, _ := json.Marshal(map[string]string{"status": string(200), "message": "OK"})
+
+	writer.WriteHeader(http.StatusOK)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(payload)
+}
+
+func validateJson(data []byte) error {
+	schema := validate.Object(validate.ObjKV("nome", validate.String()))
+	if path, err := schema.Validate(data); err == nil {
+		log.Info("Validation passed.")
+		return nil
+	} else {
+		log.Error(fmt.Sprintf("Validation failed at %s. Error (%s)", path, err))
+		return err
+	}
 }
 
 func InternalServerErrorResponse(w http.ResponseWriter, message string) {

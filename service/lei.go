@@ -35,3 +35,12 @@ func (s *LeiService) Get(id string) (models.Lei, error) {
 	}
 	return lei, nil
 }
+
+func (s *LeiService) Add(newLei string) (bool, error) {
+	result, err := s.dao.Add(newLei)
+	if err != nil {
+		log.Error(err.Error())
+		return false, err
+	}
+	return result, nil
+}
