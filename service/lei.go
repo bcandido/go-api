@@ -56,7 +56,7 @@ func Validate(err error) error {
 	switch err {
 	case nil:
 		return nil
-	case daos.ErrorNoItemFound:
+	case daos.ErrorNoRowsFound:
 		return ErrorNoItemFound
 	case daos.ErrorLeiAlreadyInserted:
 		return ErrorAlreadyInserted

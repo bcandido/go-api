@@ -13,10 +13,10 @@ const MODULE = "daos"
 var log = logging.MustGetLogger(MODULE)
 
 var (
-	ErrorNoItemFound   = errors.New("no item found")
+	ErrorNoRowsFound        = errors.New("no rows found")
 	ErrorDataBaseConnection = errors.New("unable to establish a connection with the database")
-	ErrorTransactionBegin = errors.New("could not begin a transaction")
-	ErrorTransactionCommit = errors.New("could not commit insertion")
+	ErrorTransactionBegin   = errors.New("could not begin a transaction")
+	ErrorTransactionCommit  = errors.New("could not commit insertion")
 	ErrorLeiAlreadyInserted = errors.New("lei already insert")
 )
 
@@ -93,9 +93,10 @@ func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 	rows.Next()
 	err = rows.Scan(&lei.Id, &lei.Nome)
 	if err != nil {
-		err = ErrorNoItemFound
+		log.Info(err.Error())
+		return models.Lei{}, ErrorNoRowsFound
 	}
-	return lei, err
+	return lei, nil
 }
 func (dao *LeiDAO) Add(newLei string) error {
 
