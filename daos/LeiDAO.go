@@ -6,6 +6,7 @@ import (
 	"../db"
 	"errors"
 	"fmt"
+	"context"
 )
 
 const MODULE = "daos"
@@ -14,9 +15,7 @@ var log = logging.MustGetLogger(MODULE)
 
 var (
 	ErrorNoRowsFound        = errors.New("no rows found")
-	ErrorDataBaseConnection = errors.New("unable to establish a connection with the database")
 	ErrorTransactionBegin   = errors.New("could not begin a transaction")
-	ErrorTransactionCommit  = errors.New("could not commit insertion")
 	ErrorLeiAlreadyInserted = errors.New("lei already insert")
 )
 
@@ -33,25 +32,9 @@ func NewLeiDAO(postgres *db.Postgres) *LeiDAO {
 // Get reads the Lei with the specified ID from the database.
 func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 
-	// open db connection
-	err := dao.database.Open()
-	defer dao.database.Close()
-	if err != nil {
-		log.Error(err.Error())
-		return []models.Lei{}, ErrorDataBaseConnection
-	}
-
-	tx, err := dao.database.DB.Begin()
-	if err != nil {
-		log.Error(err.Error())
-		return []models.Lei{}, ErrorTransactionBegin
-
-	}
 	query := "SELECT \"ID\", \"NOME\" FROM public.leis"
-
-	rows, err := tx.Query(query)
+	rows, err := dao.database.Select(query)
 	if err != nil {
-		log.Error(err.Error())
 		return []models.Lei{}, err
 	}
 
@@ -67,25 +50,11 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 
 func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 
-	// open db connection
-	err := dao.database.Open()
-	defer dao.database.Close()
+	format := "SELECT \"ID\", \"NOME\" FROM public.leis WHERE \"ID\" = '%s'"
+	query := fmt.Sprintf(format, id)
+	log.Info(query)
+	rows, err := dao.database.Select(query)
 	if err != nil {
-		log.Error(err.Error())
-		return models.Lei{}, err
-	}
-
-	tx, err := dao.database.DB.Begin()
-	if err != nil {
-		log.Error(err.Error())
-		return models.Lei{}, ErrorTransactionBegin
-
-	}
-	query := "SELECT \"ID\", \"NOME\" FROM public.leis WHERE \"ID\" ='" + id + "'"
-
-	rows, err := tx.Query(query)
-	if err != nil {
-		log.Error(err.Error())
 		return models.Lei{}, err
 	}
 
@@ -100,37 +69,17 @@ func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 }
 func (dao *LeiDAO) Add(newLei string) error {
 
-	// open db connection
-	err := dao.database.Open()
-	defer dao.database.Close()
+	// create context
+	ctx := context.Background()
+	defer ctx.Done()
+
+	format := "INSERT INTO public.leis (\"NOME\") VALUES ('%s')"
+	query := fmt.Sprintf(format, newLei)
+
+	_ , err := dao.database.Exec(ctx, query)
 	if err != nil {
 		log.Error(err.Error())
-		return err
-	}
-
-	tx, err := dao.database.DB.Begin()
-	if err != nil {
-		log.Error()
-		return ErrorTransactionBegin
-
-	}
-	query := fmt.Sprintf("INSERT INTO public.leis (\"NOME\") VALUES ('%s')", newLei)
-
-	_, err = tx.Exec(query)
-	if err != nil {
-		log.Error(err.Error())
-		if err = tx.Rollback(); err != nil {
-			log.Critical(err.Error())
-		}
 		return ErrorLeiAlreadyInserted
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Error(err.Error())
-		if err = tx.Rollback(); err != nil {
-			log.Critical(err.Error())
-		}
-		return ErrorTransactionCommit
 	}
 
 	return nil

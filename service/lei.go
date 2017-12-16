@@ -60,9 +60,7 @@ func Validate(err error) error {
 		return ErrorNoItemFound
 	case daos.ErrorLeiAlreadyInserted:
 		return ErrorAlreadyInserted
-	case daos.ErrorTransactionBegin,
-		daos.ErrorTransactionCommit,
-		daos.ErrorDataBaseConnection:
+	case daos.ErrorTransactionBegin:
 			return ErrorOperationFailure
 	default:
 		return err

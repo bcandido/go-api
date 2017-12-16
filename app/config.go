@@ -17,9 +17,6 @@ type appConfig struct {
 	ServerPort int `mapstructure:"port"`
 }
 
-// LoadConfig loads configuration from the given list of paths and populates it into the Config variable.
-// The configuration file(s) should be named as app.yaml.
-// Environment variables with the prefix "RESTFUL_" in their names are also read automatically.
 func LoadConfig(configPaths ...string) error {
 	config := viper.New()
 

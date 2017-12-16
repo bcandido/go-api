@@ -27,8 +27,10 @@ func main() {
 }
 
 func BuildServiceResources() *mux.Router {
-	database := db.Postgres{}
 	router := mux.NewRouter()
+
+	database := db.Postgres{}
+	database.Open()
 
 	dao := daos.NewLeiDAO(&database)
 	leiService := service.NewLeiService(dao)
