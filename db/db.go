@@ -35,7 +35,7 @@ type Query struct {
 
 func (db *Postgres) Open() error {
 
-	dsn := DataSourceName {
+	dsn := DataSourceName{
 		host:     fmt.Sprint(app.Config.DB["host"]),
 		port:     fmt.Sprint(app.Config.DB["port"]),
 		user:     "postgres",
@@ -121,7 +121,6 @@ func (db *Postgres) Exec(ctx context.Context, query string) (*sql.Rows, error) {
 
 	return rows, nil
 }
-
 
 type DataSourceName struct {
 	host     string

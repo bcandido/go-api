@@ -47,7 +47,6 @@ func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
 	return leis, nil
 }
 
-
 func (dao *LeiDAO) Get(id string) (models.Lei, error) {
 
 	format := "SELECT \"ID\", \"NOME\" FROM public.leis WHERE \"ID\" = '%s'"
@@ -76,7 +75,7 @@ func (dao *LeiDAO) Add(newLei string) error {
 	format := "INSERT INTO public.leis (\"NOME\") VALUES ('%s')"
 	query := fmt.Sprintf(format, newLei)
 
-	_ , err := dao.database.Exec(ctx, query)
+	_, err := dao.database.Exec(ctx, query)
 	if err != nil {
 		log.Error(err.Error())
 		return ErrorLeiAlreadyInserted

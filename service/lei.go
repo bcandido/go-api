@@ -14,7 +14,7 @@ var log = logging.MustGetLogger(MODULE)
 var (
 	ErrorOperationFailure = errors.New("server fail to complete operation")
 	ErrorNoItemFound      = errors.New("no item found")
-	ErrorAlreadyInserted = errors.New("already inserted")
+	ErrorAlreadyInserted  = errors.New("already inserted")
 )
 
 type LeiService struct {
@@ -61,7 +61,7 @@ func Validate(err error) error {
 	case daos.ErrorLeiAlreadyInserted:
 		return ErrorAlreadyInserted
 	case daos.ErrorTransactionBegin:
-			return ErrorOperationFailure
+		return ErrorOperationFailure
 	default:
 		return err
 	}
