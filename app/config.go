@@ -7,7 +7,8 @@ import (
 	"github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("cofing")
+const MODULE = "cofing"
+var log = logging.MustGetLogger(MODULE)
 
 // Config stores the application-wide configurations
 var Config appConfig
