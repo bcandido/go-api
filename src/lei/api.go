@@ -1,8 +1,6 @@
-package api
+package lei
 
 import (
-	"../models"
-	"../service"
 	"github.com/gorilla/mux"
 	"encoding/json"
 	"net/http"
@@ -22,21 +20,21 @@ const bodyBadFormatted = "body bad formatted"
 var log = logging.MustGetLogger(MODULE)
 
 type (
-	// LeiService specifies the interface for the lei service needed by LeiResource.
-	LeiService interface {
-		GetAll() ([]models.Lei, error)
-		Get(id string) (models.Lei, error)
-		Add(name string) (error)
-	}
+	//// LeiService specifies the interface for the lei service needed by LeiResource.
+	//LeiService interface {
+	//	GetAll() ([]models.Lei, error)
+	//	Get(id string) (models.Lei, error)
+	//	Add(name string) (error)
+	//}
 
 	// LeiResource defines the handlers for the CRUD APIs.
 	LeiResource struct {
-		service LeiService
+		service *LeiService
 	}
 )
 
 // ServeLeiResource sets up the routing of leis endpoints and the corresponding handlers.
-func ServeLeiResource(router *mux.Router, service LeiService) {
+func ServeLeiResource(router *mux.Router, service *LeiService) {
 	resource := &LeiResource{service}
 	router.HandleFunc("/leis", resource.getAll).Methods("GET")
 	router.HandleFunc("/leis", resource.add).Methods("POST")
@@ -47,10 +45,10 @@ func (r LeiResource) getAll(writer http.ResponseWriter, request *http.Request) {
 	log.Info(request.Proto, request.Host, request.Method, request.RequestURI)
 
 	leis, err := r.service.GetAll()
-	if err = service.Validate(err); err != nil {
+	if err = Validate(err); err != nil {
 		log.Error(err.Error())
 		switch err {
-		case service.ErrorNoItemFound:
+		case ErrorNoItemFound:
 			ItemNotFoundResponse(writer, itemNotFound)
 		default:
 			InternalServerErrorResponse(writer, internalServerError)
@@ -77,10 +75,10 @@ func (r LeiResource) get(writer http.ResponseWriter, request *http.Request) {
 	id := vars["id"]
 
 	lei, err := r.service.Get(id)
-	if err = service.Validate(err); err != nil {
+	if err = Validate(err); err != nil {
 		log.Error(err.Error())
 		switch err {
-		case service.ErrorNoItemFound:
+		case ErrorNoItemFound:
 			ItemNotFoundResponse(writer, err.Error())
 		default:
 			InternalServerErrorResponse(writer, err.Error())
@@ -119,12 +117,12 @@ func (r LeiResource) add(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	err = r.service.Add(body["nome"])
-	if err = service.Validate(err); err != nil {
+	if err = Validate(err); err != nil {
 		log.Error(err.Error())
 		switch err {
-		case service.ErrorNoItemFound:
+		case ErrorNoItemFound:
 			ItemNotFoundResponse(writer, itemNotFound)
-		case service.ErrorAlreadyInserted:
+		case ErrorAlreadyInserted:
 			InternalServerErrorResponse(writer, "lei já inserida")
 		default:
 			InternalServerErrorResponse(writer, internalServerError)

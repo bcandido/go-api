@@ -3,25 +3,25 @@ package main
 import (
 	"fmt"
 	"github.com/op/go-logging"
-	"./app"
+	"./lei"
 	"./db"
-	"./daos"
-	"./api"
-	"./service"
+	"./config"
 	"net/http"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 )
 
-var log = logging.MustGetLogger("main")
+const MODULE = "main"
+
+var log = logging.MustGetLogger(MODULE)
 
 func main() {
-	log.Info("start application version " + app.Version)
+	log.Info("start application...")
 	SetUpApplication()
 
 	router := BuildServiceResources()
 
-	port := fmt.Sprintf(":%v", app.Config.ServerPort)
+	port := fmt.Sprintf(":%v", config.Config.ServerPort)
 	log.Info("server started at port " + port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
@@ -29,13 +29,21 @@ func main() {
 func BuildServiceResources() *mux.Router {
 	router := mux.NewRouter()
 
+	dsn := db.NewDataSourceName(
+		fmt.Sprint(config.Config.DB["host"]),
+		fmt.Sprint(config.Config.DB["port"]),
+		"postgres",
+		"password",
+		"postgres",
+	)
+
 	database := db.Postgres{}
-	database.Open()
+	database.Open(dsn)
 
-	dao := daos.NewLeiDAO(&database)
-	leiService := service.NewLeiService(dao)
+	dao := lei.NewLeiDAO(&database)
+	leiService := lei.NewLeiService(dao)
 
-	api.ServeLeiResource(router, leiService)
+	lei.ServeLeiResource(router, leiService)
 	return router
 }
 
@@ -59,10 +67,10 @@ func PrintAsciiArt() {
 }
 
 func LoadConfiguration() {
-	log.Info("load application configurations")
-	err := app.LoadConfig("./")
+	err := config.LoadConfig("./")
 	if err != nil {
 		log.Error("invalid application configuration")
 		panic(err)
 	}
+	log.Info(config.Config)
 }

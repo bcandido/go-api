@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"fmt"
@@ -19,6 +19,8 @@ type appConfig struct {
 }
 
 func LoadConfig(configPaths ...string) error {
+	log.Info("load application configurations")
+
 	config := viper.New()
 
 	config.SetConfigName("config")

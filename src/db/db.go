@@ -2,12 +2,11 @@ package db
 
 import (
 	_ "github.com/lib/pq"
-	"github.com/op/go-logging"
 	"database/sql"
 	"fmt"
-	"../app"
 	"context"
 	"errors"
+	"github.com/op/go-logging"
 )
 
 const DRIVER = "postgres"
@@ -33,15 +32,7 @@ type Query struct {
 	Params []interface{}
 }
 
-func (db *Postgres) Open() error {
-
-	dsn := DataSourceName{
-		host:     fmt.Sprint(app.Config.DB["host"]),
-		port:     fmt.Sprint(app.Config.DB["port"]),
-		user:     "postgres",
-		password: "password",
-		dbName:   "postgres",
-	}
+func (db *Postgres) Open(dsn DataSourceName) error {
 
 	// open database connection
 	var err error
@@ -128,6 +119,16 @@ type DataSourceName struct {
 	user     string
 	password string
 	dbName   string
+}
+
+func NewDataSourceName(host, port, user, password, dbName string) DataSourceName {
+	return DataSourceName{
+		host:     host,
+		port:     port,
+		user:     user,
+		password: password,
+		dbName:   dbName,
+	}
 }
 
 func (dsn *DataSourceName) GetDSN() string {

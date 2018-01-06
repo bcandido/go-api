@@ -1,4 +1,4 @@
-package models
+package artigo
 
 type Artigo struct {
 	Numero    string `json:"numero" db:"numero"`

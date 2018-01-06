@@ -1,15 +1,8 @@
-package service
+package lei
 
 import (
-	"github.com/op/go-logging"
-	"../models"
-	"../daos"
 	"errors"
 )
-
-const MODULE = "service"
-
-var log = logging.MustGetLogger(MODULE)
 
 var (
 	ErrorOperationFailure = errors.New("server fail to complete operation")
@@ -18,27 +11,27 @@ var (
 )
 
 type LeiService struct {
-	dao *daos.LeiDAO
+	dao *LeiDAO
 }
 
-func NewLeiService(dao *daos.LeiDAO) *LeiService {
+func NewLeiService(dao *LeiDAO) *LeiService {
 	return &LeiService{dao}
 }
 
-func (s *LeiService) GetAll() ([]models.Lei, error) {
+func (s *LeiService) GetAll() ([]Lei, error) {
 	leis, err := s.dao.GetAll()
 	if err != nil {
 		log.Error(err.Error())
-		return []models.Lei{}, err
+		return []Lei{}, err
 	}
 	return leis, nil
 }
 
-func (s *LeiService) Get(id string) (models.Lei, error) {
+func (s *LeiService) Get(id string) (Lei, error) {
 	lei, err := s.dao.Get(id)
 	if err != nil {
 		log.Error(err.Error())
-		return models.Lei{}, err
+		return Lei{}, err
 	}
 	return lei, nil
 }
@@ -56,11 +49,11 @@ func Validate(err error) error {
 	switch err {
 	case nil:
 		return nil
-	case daos.ErrorNoRowsFound:
+	case ErrorNoRowsFound:
 		return ErrorNoItemFound
-	case daos.ErrorLeiAlreadyInserted:
+	case ErrorLeiAlreadyInserted:
 		return ErrorAlreadyInserted
-	case daos.ErrorTransactionBegin:
+	case ErrorTransactionBegin:
 		return ErrorOperationFailure
 	default:
 		return err

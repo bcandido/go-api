@@ -1,17 +1,17 @@
-package daos
+package lei
 
 import (
-	"github.com/op/go-logging"
-	"../models"
-	"../db"
 	"errors"
 	"fmt"
 	"context"
+	"../db"
 )
 
-const MODULE = "daos"
+type Lei struct {
+	Id   int    `json:"id" db:"id"`
+	Nome string `json:"nome" db:"nome"`
+}
 
-var log = logging.MustGetLogger(MODULE)
 
 var (
 	ErrorNoRowsFound        = errors.New("no rows found")
@@ -30,39 +30,39 @@ func NewLeiDAO(postgres *db.Postgres) *LeiDAO {
 }
 
 // Get reads the Lei with the specified ID from the database.
-func (dao *LeiDAO) GetAll() ([]models.Lei, error) {
+func (dao *LeiDAO) GetAll() ([]Lei, error) {
 
 	query := "SELECT \"ID\", \"NOME\" FROM public.leis"
 	rows, err := dao.database.Select(query)
 	if err != nil {
-		return []models.Lei{}, err
+		return []Lei{}, err
 	}
 
-	var leis []models.Lei
+	var leis []Lei
 	for rows.Next() {
-		var lei models.Lei
+		var lei Lei
 		rows.Scan(&lei.Id, &lei.Nome)
 		leis = append(leis, lei)
 	}
 	return leis, nil
 }
 
-func (dao *LeiDAO) Get(id string) (models.Lei, error) {
+func (dao *LeiDAO) Get(id string) (Lei, error) {
 
 	format := "SELECT \"ID\", \"NOME\" FROM public.leis WHERE \"ID\" = '%s'"
 	query := fmt.Sprintf(format, id)
 	log.Info(query)
 	rows, err := dao.database.Select(query)
 	if err != nil {
-		return models.Lei{}, err
+		return Lei{}, err
 	}
 
-	var lei models.Lei
+	var lei Lei
 	rows.Next()
 	err = rows.Scan(&lei.Id, &lei.Nome)
 	if err != nil {
 		log.Info(err.Error())
-		return models.Lei{}, ErrorNoRowsFound
+		return Lei{}, ErrorNoRowsFound
 	}
 	return lei, nil
 }
