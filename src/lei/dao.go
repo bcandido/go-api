@@ -32,7 +32,7 @@ func NewLeiDAO(postgres *db.Postgres) *LeiDAO {
 // Get reads the Lei with the specified ID from the database.
 func (dao *LeiDAO) GetAll() ([]Lei, error) {
 
-	query := "SELECT \"ID\", \"NOME\" FROM public.leis"
+	query := "SELECT id, nome FROM public.leis"
 	rows, err := dao.database.Select(query)
 	if err != nil {
 		return []Lei{}, err
@@ -49,7 +49,7 @@ func (dao *LeiDAO) GetAll() ([]Lei, error) {
 
 func (dao *LeiDAO) Get(id string) (Lei, error) {
 
-	format := "SELECT \"ID\", \"NOME\" FROM public.leis WHERE \"ID\" = '%s'"
+	format := "SELECT id, nome FROM public.leis WHERE id = '%s'"
 	query := fmt.Sprintf(format, id)
 	log.Info(query)
 	rows, err := dao.database.Select(query)
@@ -72,7 +72,7 @@ func (dao *LeiDAO) Add(newLei string) error {
 	ctx := context.Background()
 	defer ctx.Done()
 
-	format := "INSERT INTO public.leis (\"NOME\") VALUES ('%s')"
+	format := "INSERT INTO public.leis (nome) VALUES ('%s')"
 	query := fmt.Sprintf(format, newLei)
 
 	_, err := dao.database.Exec(ctx, query)
