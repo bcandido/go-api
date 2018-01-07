@@ -7,11 +7,11 @@ CREATE SEQUENCE lei_id_seq
   CACHE 1;
 
 /* Tables */
-CREATE TABLE public.lei
+CREATE TABLE public.leis
 (
-  lei character varying(100) COLLATE pg_catalog."default" NOT NULL,
-  id integer NOT NULL DEFAULT nextval('lei_id_seq'::regclass),
-  CONSTRAINT lei_pkey PRIMARY KEY (lei)
+  NOME character varying(100) COLLATE pg_catalog."default" NOT NULL,
+  ID integer NOT NULL DEFAULT nextval('lei_id_seq'::regclass),
+  CONSTRAINT lei_pkey PRIMARY KEY (NOME)
 )
 
 WITH (
@@ -20,5 +20,5 @@ WITH (
 
 TABLESPACE pg_default;
 
-ALTER TABLE public.lei
+ALTER TABLE public.leis
   OWNER to postgres;
