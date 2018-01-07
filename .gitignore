@@ -1,5 +1,5 @@
 .vscode
 .idea
 debug
-main
+bin/go-api
 data
